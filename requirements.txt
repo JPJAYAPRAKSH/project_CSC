@@ -3,6 +3,8 @@ Django==6.0.1
 django-cors-headers==4.9.0
 django-filter==25.2
 djangorestframework==3.16.1
+gunicorn==24.1.1
+packaging==26.0
 pillow==12.1.0
 PyPDF2==3.0.1
 sqlparse==0.5.5
