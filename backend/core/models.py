@@ -107,9 +107,15 @@ class Student(models.Model):
     phone = models.CharField(max_length=15, blank=True)
     password = models.CharField(max_length=128, default='')  # Hashed password
     
+    # Profile Details
+    photo = models.ImageField(upload_to='student_photos/', null=True, blank=True)
+    instagram_url = models.URLField(max_length=500, blank=True)
+    linkedin_url = models.URLField(max_length=500, blank=True)
+    
     # Additional Info
     date_of_birth = models.DateField(null=True, blank=True)
     address = models.TextField(blank=True)
+    bio = models.TextField(blank=True, help_text="Short bio or about me")
     
     # Account
     is_active = models.BooleanField(default=False)
@@ -149,6 +155,7 @@ class Enrollment(models.Model):
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    batch = models.ForeignKey('Batch', on_delete=models.SET_NULL, null=True, blank=True, related_name='enrollments')
     
     # Enrollment Details
     enrollment_date = models.DateTimeField(auto_now_add=True)
@@ -217,3 +224,38 @@ class SeasonalOffer(models.Model):
     
     def __str__(self):
         return self.title
+
+
+class Batch(models.Model):
+    """Batches for courses"""
+    name = models.CharField(max_length=100, help_text="e.g., 'Jan 2026 Morning Batch'")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='batches')
+    time_slot = models.CharField(max_length=100, help_text="e.g., '10:00 AM - 12:00 PM'")
+    start_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Batch"
+        verbose_name_plural = "Batches"
+        ordering = ['-start_date']
+    
+    def __str__(self):
+        return f"{self.name} ({self.course.code})"
+
+
+class OTPVerification(models.Model):
+    """Store OTPs for email/phone verification and password reset"""
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, default='password_reset') # or 'login', 'registration'
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.email} - {self.code} ({self.purpose})"

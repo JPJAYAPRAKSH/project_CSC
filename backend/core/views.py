@@ -4,13 +4,16 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-
-from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer
+from django.http import HttpResponse
+import csv
+from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer, Batch
+from django.core.mail import send_mail
+from django.conf import settings
 from .serializers import (
     InstituteProfileSerializer, CourseCategorySerializer,
     CourseListSerializer, CourseDetailSerializer,
     StudentSerializer, EnrollmentSerializer, EnrollmentCreateSerializer,
-    ContactMessageSerializer, SeasonalOfferSerializer
+    ContactMessageSerializer, SeasonalOfferSerializer, BatchSerializer
 )
 
 
@@ -104,6 +107,86 @@ class StudentViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'email', 'phone']
 
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        """Export student data as CSV"""
+        # Get query parameters for filtering
+        course_id = request.query_params.get('course_id')
+        batch_id = request.query_params.get('batch_id')
+        
+        students = self.get_queryset()
+        
+        if course_id:
+            students = students.filter(enrollments__course_id=course_id).distinct()
+        if batch_id:
+            students = students.filter(enrollments__batch_id=batch_id).distinct()
+            
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="students_export.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'ID', 'First Name', 'Last Name', 'Email', 'Phone', 
+            'DOB', 'Instagram', 'LinkedIn', 'Address', 'Joined Date'
+        ])
+        
+        for student in students:
+            writer.writerow([
+                student.id, student.first_name, student.last_name, 
+                student.email, student.phone, student.date_of_birth,
+                student.instagram_url, student.linkedin_url,
+                student.address, student.created_at.strftime('%Y-%m-%d')
+            ])
+            
+        return response
+
+    @action(detail=False, methods=['post'])
+    def send_bulk_message(self, request):
+        """Send Email or WhatsApp message to multiple students"""
+        student_ids = request.data.get('student_ids', [])
+        message_type = request.data.get('type', 'email') # email or whatsapp
+        subject = request.data.get('subject', 'Message from CSC Institute')
+        content = request.data.get('content', '')
+        
+        if not student_ids or not content:
+            return Response({'error': 'student_ids and content are required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        students = Student.objects.filter(id__in=student_ids)
+        
+        if message_type == 'email':
+            # Collect recipient list
+            recipient_list = list(students.values_list('email', flat=True))
+            try:
+                send_mail(
+                    subject,
+                    content,
+                    settings.EMAIL_HOST_USER or 'admin@csc.college',
+                    recipient_list,
+                    fail_silently=False
+                )
+                return Response({'message': f'Email sent to {len(recipient_list)} students'})
+            except Exception as e:
+                return Response({'error': f'Failed to send email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        elif message_type == 'whatsapp':
+            # For WhatsApp, we return the phone numbers and the content 
+            # so the frontend can open wa.me links
+            recipients = []
+            for s in students:
+                if s.phone:
+                    recipients.append({
+                        'name': f"{s.first_name} {s.last_name}",
+                        'phone': s.phone.replace(' ', '').replace('-', ''),
+                    })
+            
+            return Response({
+                'message': 'WhatsApp links generated',
+                'recipients': recipients,
+                'content': content
+            })
+            
+        return Response({'error': 'Invalid message type'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
     """
@@ -188,3 +271,15 @@ class SeasonalOfferViewSet(viewsets.ReadOnlyModelViewSet):
         offers = self.get_queryset()
         serializer = self.get_serializer(offers, many=True)
         return Response(serializer.data)
+
+
+class BatchViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for batches
+    """
+    queryset = Batch.objects.all()
+    serializer_class = BatchSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['course', 'is_active']
+    search_fields = ['name']

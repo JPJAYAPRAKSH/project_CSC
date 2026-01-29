@@ -12,9 +12,12 @@ import CourseDetail from './pages/CourseDetail';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import StudentPortal from './pages/StudentPortal';
+import AdminDashboard from './pages/AdminDashboard';
 import Gallery from './pages/Gallery';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import UpdateProfile from './pages/UpdateProfile';
 import './App.css';
 
 function App() {
@@ -39,11 +42,28 @@ function App() {
                                     <Route path="/gallery" element={<Gallery />} />
                                     <Route path="/login" element={<Login />} />
                                     <Route path="/register" element={<Register />} />
+                                    <Route path="/forgot-password" element={<ForgotPassword />} />
                                     <Route
                                         path="/student-portal"
                                         element={
                                             <ProtectedRoute>
                                                 <StudentPortal />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/admin-dashboard"
+                                        element={
+                                            <ProtectedRoute>
+                                                <AdminDashboard />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/update-profile"
+                                        element={
+                                            <ProtectedRoute>
+                                                <UpdateProfile />
                                             </ProtectedRoute>
                                         }
                                     />

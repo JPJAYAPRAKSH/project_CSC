@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer
+from django.shortcuts import render
+from django.contrib import messages
+from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer, Batch
+from .utils import send_professional_email, send_whatsapp_message
 
 
 @admin.register(InstituteProfile)
@@ -66,16 +69,64 @@ class CourseAdmin(admin.ModelAdmin):
     )
 
 
+class BatchFilter(admin.SimpleListFilter):
+    title = 'Batch'
+    parameter_name = 'batch'
+
+    def lookups(self, request, model_admin):
+        batches = Batch.objects.all()
+        return [(b.id, str(b)) for b in batches]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(enrollments__batch__id=self.value())
+        return queryset
+
+
+@admin.action(description='Send Email & WhatsApp to selected Students')
+def send_email_and_whatsapp(modeladmin, request, queryset):
+    # If request is POST and 'apply' is clicked (we can use an intermediate page for message content)
+    # For simplicity, we'll check if a message has been provided in the POST,
+    # otherwise render a form.
+    
+    if 'apply' in request.POST:
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        send_email = request.POST.get('send_email') == 'on'
+        send_whatsapp = request.POST.get('send_whatsapp') == 'on'
+        
+        count = 0
+        for student in queryset:
+            if send_email and student.email:
+                send_professional_email(subject, message, [student.email])
+            
+            if send_whatsapp and student.phone:
+                # Assuming simple text message
+                send_whatsapp_message(student.phone, message)
+            
+            count += 1
+            
+        modeladmin.message_user(request, f"Messages sent to {count} students.")
+        return
+        
+    # Render intermediate page
+    return render(request, 'admin/send_message_intermediate.html', context={'students': queryset})
+
+
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'email', 'phone', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_filter = ['is_active', 'created_at', BatchFilter]
     search_fields = ['first_name', 'last_name', 'email', 'phone']
     ordering = ['-created_at']
+    actions = [send_email_and_whatsapp]
     
     fieldsets = (
         ('Personal Information', {
-            'fields': ('first_name', 'last_name', 'email', 'phone', 'date_of_birth')
+            'fields': ('first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'photo', 'bio')
+        }),
+        ('Social Media', {
+            'fields': ('instagram_url', 'linkedin_url')
         }),
         ('Address', {
             'fields': ('address',)
@@ -88,14 +139,14 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['student', 'course', 'status', 'enrollment_date', 'progress_percentage', 'payment_status']
-    list_filter = ['status', 'payment_status', 'enrollment_date', 'course__category']
+    list_display = ['student', 'course', 'batch', 'status', 'enrollment_date', 'progress_percentage', 'payment_status']
+    list_filter = ['status', 'payment_status', 'enrollment_date', 'course__category', 'batch']
     search_fields = ['student__first_name', 'student__last_name', 'student__email', 'course__name', 'course__code']
     ordering = ['-enrollment_date']
     
     fieldsets = (
         ('Enrollment Details', {
-            'fields': ('student', 'course', 'enrollment_date', 'start_date', 'end_date')
+            'fields': ('student', 'course', 'batch', 'enrollment_date', 'start_date', 'end_date')
         }),
         ('Status', {
             'fields': ('status', 'progress_percentage')
@@ -139,3 +190,11 @@ class SeasonalOfferAdmin(admin.ModelAdmin):
     list_editable = ['is_active', 'priority']
     search_fields = ['title', 'message']
     ordering = ['-priority', '-created_at']
+
+
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    list_display = ['name', 'course', 'time_slot', 'start_date', 'is_active']
+    list_filter = ['course', 'is_active', 'start_date']
+    search_fields = ['name', 'course__name', 'course__code']
+    ordering = ['-start_date']

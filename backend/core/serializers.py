@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer
+from .models import InstituteProfile, CourseCategory, Course, Student, Enrollment, ContactMessage, SeasonalOffer, Batch
 
 
 class InstituteProfileSerializer(serializers.ModelSerializer):
@@ -72,6 +72,7 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'email', 'phone',
+            'photo', 'instagram_url', 'linkedin_url', 'bio',
             'date_of_birth', 'address', 'is_active', 'enrolled_courses'
         ]
     
@@ -81,14 +82,14 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-    course_name = serializers.CharField(source='course.name', read_only=True)
-    course_code = serializers.CharField(source='course.code', read_only=True)
+    batch_name = serializers.CharField(source='batch.name', read_only=True)
+    batch_time = serializers.CharField(source='batch.time_slot', read_only=True)
     
     class Meta:
         model = Enrollment
         fields = [
             'id', 'student', 'student_name', 'course', 'course_name', 'course_code',
+            'batch', 'batch_name', 'batch_time',
             'enrollment_date', 'start_date', 'end_date', 'status',
             'payment_status', 'amount_paid', 'progress_percentage', 'remarks'
         ]
@@ -128,3 +129,20 @@ class SeasonalOfferSerializer(serializers.ModelSerializer):
     class Meta:
         model = SeasonalOffer
         fields = ['id', 'title', 'message', 'is_active', 'priority', 'created_at']
+
+
+class BatchSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course.name', read_only=True)
+    course_code = serializers.CharField(source='course.code', read_only=True)
+    student_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Batch
+        fields = [
+            'id', 'name', 'course', 'course_name', 'course_code',
+            'time_slot', 'start_date', 'is_active', 'student_count', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+        
+    def get_student_count(self, obj):
+        return obj.enrollments.count()

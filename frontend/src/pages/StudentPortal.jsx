@@ -1,5 +1,7 @@
-import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getEnrollmentsByStudent } from '../services/api';
 import './StudentPortal.css';
 
 function StudentPortal() {
@@ -15,14 +17,8 @@ function StudentPortal() {
 
     const fetchEnrollments = async () => {
         try {
-            const response = await fetch(
-                `http://localhost:8000/api/enrollments/by_student/?student_id=${user.id}`,
-                { credentials: 'include' }
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setEnrollments(data);
-            }
+            const response = await getEnrollmentsByStudent(user.id);
+            setEnrollments(response.data);
         } catch (error) {
             console.error('Error fetching enrollments:', error);
         } finally {
@@ -36,7 +32,11 @@ function StudentPortal() {
                 <div className="container">
                     <div className="welcome-section">
                         <div className="welcome-avatar">
-                            {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
+                            {user?.photo ? (
+                                <img src={user.photo} alt="Profile" className="avatar-img" />
+                            ) : (
+                                <span>{user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}</span>
+                            )}
                         </div>
                         <div className="welcome-text">
                             <h1>Welcome back, {user?.first_name}!</h1>
@@ -103,18 +103,6 @@ function StudentPortal() {
                             <p>View your performance feedback and instructor remarks</p>
                             <button className="btn btn-primary btn-sm">View Remarks</button>
                         </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">📊</div>
-                            <h3>Course Progress</h3>
-                            <p>Track your learning journey and milestones</p>
-                            <button className="btn btn-primary btn-sm">View Progress</button>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">📚</div>
-                            <h3>My Courses</h3>
-                            <p>Access your enrolled courses and materials</p>
-                            <button className="btn btn-primary btn-sm">View Courses</button>
-                        </div>
                     </div>
                 </div>
 
@@ -124,13 +112,18 @@ function StudentPortal() {
                         <h2>My Enrolled Courses</h2>
                         <div className="enrollments-list">
                             {enrollments.map((enrollment) => (
-                                <div key={enrollment.id} className="enrollment-card">
+                                <div className="enrollment-card" key={enrollment.id}>
                                     <div className="enrollment-info">
                                         <h4>{enrollment.course_name || 'Course'}</h4>
                                         <span className={`status-badge status-${enrollment.status}`}>
                                             {enrollment.status}
                                         </span>
                                     </div>
+                                    {enrollment.batch_name && (
+                                        <div className="batch-badge">
+                                            🗓️ Batch: {enrollment.batch_name} ({enrollment.batch_time})
+                                        </div>
+                                    )}
                                     <div className="progress-bar">
                                         <div
                                             className="progress-fill"
@@ -144,17 +137,29 @@ function StudentPortal() {
                     </div>
                 )}
 
-                {/* Profile Section */}
-                <div className="profile-section">
+                {/* Profile Section - Now just a card with Update button */}
+                <div className="profile-section" style={{ marginTop: '3rem' }}>
                     <h2>Your Profile</h2>
-                    <div className="profile-card">
-                        <div className="profile-avatar">
-                            {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
-                        </div>
-                        <div className="profile-details">
-                            <p><strong>Name:</strong> {user?.first_name} {user?.last_name}</p>
-                            <p><strong>Email:</strong> {user?.email}</p>
-                            <p><strong>Phone:</strong> {user?.phone}</p>
+                    <div className="profile-card-container">
+                        <div className="profile-card" style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '2rem' }}>
+                            <div className="profile-avatar large">
+                                {user?.photo ? (
+                                    <img src={user.photo} alt="Profile" />
+                                ) : (
+                                    <span>{user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}</span>
+                                )}
+                            </div>
+                            <div className="profile-details" style={{ flex: 1 }}>
+                                <h3>{user?.first_name} {user?.last_name}</h3>
+                                <p><strong>Email:</strong> {user?.email}</p>
+                                <p><strong>Phone:</strong> {user?.phone || 'Not set'}</p>
+                                {user?.bio && <p><strong>Bio:</strong> {user.bio}</p>}
+                                <div style={{ marginTop: '1rem' }}>
+                                    <Link to="/update-profile" className="btn btn-primary">
+                                        ✏️ Update Profile
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
