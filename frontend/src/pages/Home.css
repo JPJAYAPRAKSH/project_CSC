@@ -5,6 +5,9 @@
 .hero {
     background: var(--gradient-primary);
     padding: var(--spacing-2xl) 0;
+    margin-top: 1rem;
+    /* Reverted to original spacing */
+    /* Significantly increased spacing to prevent clash */
     position: relative;
     overflow: hidden;
     min-height: 500px;
