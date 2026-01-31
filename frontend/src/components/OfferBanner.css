@@ -6,7 +6,7 @@
     overflow: hidden;
     white-space: nowrap;
     position: sticky;
-    top: 72px;
+    top: 90px;
     /* Sticks below the navbar */
     z-index: 998;
     font-weight: 700;
@@ -45,7 +45,7 @@
     .offer-banner {
         font-size: 0.8rem;
         padding: 0.4rem 0;
-        top: 60px;
+        top: 70px;
         /* Mobile navbar height approx */
     }
 

@@ -88,7 +88,7 @@ function Login() {
                     </div>
 
                     <a
-                        href="http://localhost:8000/admin/"
+                        href={import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '/admin/') : 'http://localhost:8000/admin/'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="admin-link"
