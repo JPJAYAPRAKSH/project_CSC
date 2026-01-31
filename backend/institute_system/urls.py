@@ -18,12 +18,39 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import TemplateView
+from django.http import HttpResponse, Http404
+import os
+
+def serve_react_app(request):
+    """
+    Serve the React app's index.html directly.
+    This bypasses Django's template system entirely.
+    """
+    # Try multiple locations for index.html
+    possible_paths = [
+        os.path.join(settings.STATIC_ROOT, 'index.html'),
+        os.path.join(settings.BASE_DIR, 'staticfiles', 'index.html'),
+        os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist', 'index.html'),
+    ]
+    
+    for index_path in possible_paths:
+        if os.path.exists(index_path):
+            with open(index_path, 'r', encoding='utf-8') as f:
+                return HttpResponse(f.read(), content_type='text/html')
+    
+    # If we can't find it, return an error with debugging info
+    return HttpResponse(
+        f"index.html not found. Searched paths:<br>" +
+        "<br>".join(possible_paths) +
+        f"<br><br>STATIC_ROOT: {settings.STATIC_ROOT}<br>" +
+        f"BASE_DIR: {settings.BASE_DIR}",
+        status=500
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')),
-    re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
+    re_path(r'^(?!static|media|admin|api).*$', serve_react_app),
 ]
 
 if settings.DEBUG:
