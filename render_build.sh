@@ -2,18 +2,34 @@
 # exit on error
 set -o errexit
 
+# Store the root directory
+ROOT_DIR=$(pwd)
+echo "Root directory: $ROOT_DIR"
+
 # Build Frontend
-cd frontend
+echo "Building frontend..."
+cd "$ROOT_DIR/frontend"
 npm install
 npm run build
-cd ..
+echo "Frontend build complete. Listing dist contents:"
+ls -la dist/
 
-# Copy frontend build to strict backend locations checking for directory existence
-mkdir -p backend/templates
-cp frontend/dist/index.html backend/templates/index.html
+# Copy frontend build to backend templates
+echo "Copying index.html to backend/templates..."
+mkdir -p "$ROOT_DIR/backend/templates"
+cp "$ROOT_DIR/frontend/dist/index.html" "$ROOT_DIR/backend/templates/index.html"
+echo "Verifying copy:"
+ls -la "$ROOT_DIR/backend/templates/"
 
 # Build Backend
-pip install -r backend/requirements.txt # Ensure using backend/requirements.txt or just requirements.txt if synced
+echo "Installing backend dependencies..."
+cd "$ROOT_DIR"
+pip install -r requirements.txt
 
+echo "Running collectstatic..."
 python backend/manage.py collectstatic --no-input
+
+echo "Running migrations..."
 python backend/manage.py migrate
+
+echo "Build complete!"
