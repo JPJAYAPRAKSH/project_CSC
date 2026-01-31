@@ -1,55 +1,71 @@
 """
 URL configuration for institute_system project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse
 import os
+import sys
 
 def serve_react_app(request):
     """
-    Serve the React app's index.html directly.
-    This bypasses Django's template system entirely.
+    Serve the React app's index.html directly with robust debugging.
     """
-    # Try multiple locations for index.html
-    possible_paths = [
-        os.path.join(settings.STATIC_ROOT, 'index.html'),
-        os.path.join(settings.BASE_DIR, 'staticfiles', 'index.html'),
-        os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist', 'index.html'),
-    ]
-    
-    for index_path in possible_paths:
-        if os.path.exists(index_path):
-            with open(index_path, 'r', encoding='utf-8') as f:
-                return HttpResponse(f.read(), content_type='text/html')
-    
-    # If we can't find it, return an error with debugging info
-    return HttpResponse(
-        f"index.html not found. Searched paths:<br>" +
-        "<br>".join(possible_paths) +
-        f"<br><br>STATIC_ROOT: {settings.STATIC_ROOT}<br>" +
-        f"BASE_DIR: {settings.BASE_DIR}",
-        status=500
-    )
+    try:
+        base_dir = settings.BASE_DIR
+        static_root = settings.STATIC_ROOT
+        cwd = os.getcwd()
+        
+        # Convert Path objects to string for manipulation
+        base_dir_str = str(base_dir)
+        
+        possible_paths = [
+            os.path.join(str(static_root), 'index.html'),
+            os.path.join(base_dir_str, 'staticfiles', 'index.html'),
+            # Try to guess frontend path relative to backend
+            os.path.join(os.path.dirname(base_dir_str), 'frontend', 'dist', 'index.html'),
+            # Explicit Render path
+            '/opt/render/project/src/backend/staticfiles/index.html'
+        ]
+        
+        print(f"DEBUG: serve_react_app called. CWD: {cwd}", file=sys.stderr)
+        
+        for index_path in possible_paths:
+            if os.path.exists(index_path):
+                print(f"DEBUG: Found index.html at {index_path}", file=sys.stderr)
+                with open(index_path, 'r', encoding='utf-8') as f:
+                    return HttpResponse(f.read(), content_type='text/html')
+        
+        # If we get here, file was not found. Gather debug info.
+        print(f"DEBUG: index.html NOT FOUND. Checked: {possible_paths}", file=sys.stderr)
+        
+        try:
+            static_contents = os.listdir(static_root) if os.path.exists(static_root) else "Dir not found"
+        except Exception as e:
+            static_contents = str(e)
+            
+        debug_info = (
+            f"<h1>Debug Error: index.html not found</h1>"
+            f"<p><strong>CWD:</strong> {cwd}</p>"
+            f"<p><strong>BASE_DIR:</strong> {base_dir}</p>"
+            f"<p><strong>STATIC_ROOT:</strong> {static_root}</p>"
+            f"<p><strong>Contents of STATIC_ROOT:</strong> {static_contents}</p>"
+            f"<p><strong>Searched Paths:</strong><br>{'<br>'.join(possible_paths)}</p>"
+        )
+        
+        # Return 200 so the browser/Django doesn't hide the message
+        return HttpResponse(debug_info, status=200)
+        
+    except Exception as e:
+        import traceback
+        return HttpResponse(f"<h1>Critical View Error</h1><pre>{traceback.format_exc()}</pre>", status=200)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')),
+    # Catch-all for React
     re_path(r'^(?!static|media|admin|api).*$', serve_react_app),
 ]
 
