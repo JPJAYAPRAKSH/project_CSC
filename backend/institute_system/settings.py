@@ -171,11 +171,13 @@ CORS_ALLOWED_ORIGINS = [url.strip() for url in config('CORS_ALLOWED_ORIGINS', de
 CORS_ALLOW_CREDENTIALS = True
 
 # Session Configuration for cross-origin auth
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True  # Required for SameSite=None
 SESSION_COOKIE_HTTPONLY = True
 
 # CSRF Configuration
-CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:5173,http://127.0.0.1:5173').split(',')
 
 # Email Configuration
