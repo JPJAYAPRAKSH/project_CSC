@@ -7,7 +7,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
+from django.http import JsonResponse
+
+def api_root(request):
+    return JsonResponse({"message": "CSC Computer Education Backend is Running", "status": "200 OK"})
+
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')),
 ]
