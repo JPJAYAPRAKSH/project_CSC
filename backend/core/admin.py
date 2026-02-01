@@ -121,6 +121,7 @@ def send_email_and_whatsapp(modeladmin, request, queryset):
 class StudentAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'email', 'phone', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at', BatchFilter]
+    list_editable = ['is_active']  # Quick approval from list view
     search_fields = ['first_name', 'last_name', 'email', 'phone']
     ordering = ['-created_at']
     actions = [send_email_and_whatsapp]
