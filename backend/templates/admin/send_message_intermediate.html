@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <h2>Send Message to Selected Students</h2>
+
+    <p>You are about to send a message to the following <strong>{{ students|length }}</strong> students:</p>
+    <ul>
+        {% for student in students %}
+        <li>{{ student.full_name }} ({{ student.email }} / {{ student.phone }})</li>
+        <input type="hidden" name="_selected_action" value="{{ student.pk }}" />
+        {% endfor %}
+    </ul>
+
+    <input type="hidden" name="action" value="send_email_and_whatsapp" />
+    <input type="hidden" name="apply" value="true" />
+
+    <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px;">Subject:</label>
+        <input type="text" name="subject" style="width: 100%; max-width: 600px; padding: 8px;" required>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px;">Message:</label>
+        <textarea name="message" rows="10" style="width: 100%; max-width: 600px; padding: 8px;" required></textarea>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px;">
+            <input type="checkbox" name="send_email" checked> Send via Email
+        </label>
+        <label style="display: block;">
+            <input type="checkbox" name="send_whatsapp"> Send via WhatsApp
+        </label>
+    </div>
+
+    <div>
+        <input type="submit" value="Send Message"
+            style="padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer;">
+        <a href="../" style="margin-left: 20px; text-decoration: none; color: #666;">Cancel</a>
+    </div>
+</form>
+{% endblock %}

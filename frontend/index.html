@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Institute Management System</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <div id="debug-fallback" style="text-align:center; padding: 50px; font-family: sans-serif; color: #666;">
+    <h2>Loading Application...</h2>
+    <p>If this message doesn't disappear, there might be a script error. Check the browser console (F12).</p>
+  </div>
+  <script type="module" src="/src/main.jsx"></script>
+  <script>
+    // Hide fallback if React mounts anything into root
+    const root = document.getElementById('root');
+    const observer = new MutationObserver(() => {
+      if (root.children.length > 0) {
+        document.getElementById('debug-fallback').style.display = 'none';
+      }
+    });
+    observer.observe(root, { childList: true });
+
+    // Also catch global errors
+    window.onerror = function (msg, url, line) {
+      document.getElementById('debug-fallback').innerHTML =
+        '<h2 style="color:red">Application Error</h2>' +
+        '<p>' + msg + '</p>' +
+        '<p>Line: ' + line + '</p>';
+    };
+  </script>
+</body>
+
+</html>
