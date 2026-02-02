@@ -5,7 +5,7 @@ from .views import (
     StudentViewSet, EnrollmentViewSet, ContactMessageViewSet, 
     SeasonalOfferViewSet, BatchViewSet, AttendanceViewSet,
     AssessmentViewSet, QuestionViewSet, AssessmentSubmissionViewSet,
-    CertificateViewSet, PaymentViewSet
+    CertificateViewSet, PaymentViewSet, AdminActionsView
 )
 from .auth_views import (
     student_login, student_register, student_logout, get_current_user,
@@ -39,4 +39,6 @@ urlpatterns = [
     path('auth/request-otp/', request_otp, name='request-otp'),
     path('auth/verify-otp/', verify_otp, name='verify-otp'),
     path('auth/reset-password/', reset_password, name='reset-password'),
+    # Admin endpoints
+    path('admin-actions/', AdminActionsView.as_view(), name='admin-actions'),
 ]

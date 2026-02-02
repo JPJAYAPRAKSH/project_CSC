@@ -12,6 +12,9 @@ function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Recent Actions State
+    const [recentActions, setRecentActions] = useState([]);
+
     // Messaging State
     const [showMessagingModal, setShowMessagingModal] = useState(false);
     const [messageData, setMessageData] = useState({
@@ -47,10 +50,21 @@ function AdminDashboard() {
             ]);
             setCourses(coursesRes.data.results || coursesRes.data || []);
             setBatches(batchesRes.data.results || batchesRes.data || []);
+            // Fetch admin actions
+            fetchAdminActions();
         } catch (error) {
             console.error('Error fetching admin data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAdminActions = async () => {
+        try {
+            const res = await api.get('/admin-actions/');
+            setRecentActions(res.data || []);
+        } catch (error) {
+            console.error('Error fetching admin actions:', error);
         }
     };
 
@@ -228,6 +242,43 @@ function AdminDashboard() {
                 {/* Main Content */}
                 <div className="admin-content">
                     <div className="admin-grid">
+                        {/* Recent Actions Card */}
+                        <div className="admin-card recent-actions-card">
+                            <div className="card-header">
+                                <h2>📋 Recent Actions</h2>
+                            </div>
+                            <div className="card-body">
+                                {recentActions.length > 0 ? (
+                                    <div className="actions-list">
+                                        {recentActions.map(action => (
+                                            <div key={action.id} className="action-item">
+                                                <div className="action-icon">
+                                                    {action.action_type === 'Added' && '➕'}
+                                                    {action.action_type === 'Changed' && '✏️'}
+                                                    {action.action_type === 'Deleted' && '🗑️'}
+                                                </div>
+                                                <div className="action-details">
+                                                    <span className="action-user">{action.user}</span>
+                                                    <span className="action-desc">
+                                                        {action.action_type} <strong>{action.object_type}</strong>: {action.object_repr}
+                                                    </span>
+                                                    <span className="action-time">
+                                                        {new Date(action.action_time).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📭</div>
+                                        <h3>No recent actions</h3>
+                                        <p>Admin actions will appear here</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Students Card */}
                         <div className="admin-card">
                             <div className="card-header">

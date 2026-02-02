@@ -611,3 +611,41 @@ class PaymentViewSet(viewsets.ModelViewSet):
         payments = self.get_queryset().filter(student_id=student_id)
         serializer = self.get_serializer(payments, many=True)
         return Response(serializer.data)
+
+
+# ===== Admin Actions API =====
+from rest_framework.views import APIView
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
+
+class AdminActionsView(APIView):
+    """
+    API endpoint to fetch recent admin actions (Django LogEntry)
+    """
+    permission_classes = [AllowAny]  # In production, use IsAdminUser
+    
+    def get(self, request):
+        # Get the last 10 admin actions
+        recent_actions = LogEntry.objects.select_related('user', 'content_type').order_by('-action_time')[:10]
+        
+        actions_data = []
+        for entry in recent_actions:
+            action_type = 'Unknown'
+            if entry.action_flag == 1:
+                action_type = 'Added'
+            elif entry.action_flag == 2:
+                action_type = 'Changed'
+            elif entry.action_flag == 3:
+                action_type = 'Deleted'
+            
+            actions_data.append({
+                'id': entry.id,
+                'user': entry.user.username if entry.user else 'System',
+                'action_type': action_type,
+                'object_type': entry.content_type.model if entry.content_type else 'Unknown',
+                'object_repr': entry.object_repr,
+                'change_message': entry.change_message,
+                'action_time': entry.action_time.isoformat(),
+            })
+        
+        return Response(actions_data)
